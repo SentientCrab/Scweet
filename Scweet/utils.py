@@ -164,7 +164,7 @@ def init_driver(headless=True, proxy=None, show_images=False, option=None):
     # options
     options = Options()
     if headless is True:
-        print("Scraping on headless mode.")
+        #print("Scraping on headless mode.")
         options.add_argument('--disable-gpu')
         options.headless = True
     else:
@@ -172,7 +172,7 @@ def init_driver(headless=True, proxy=None, show_images=False, option=None):
     options.add_argument('log-level=3')
     if proxy is not None:
         options.add_argument('--proxy-server=%s' % proxy)
-        print("using proxy : ", proxy)
+        #print("using proxy : ", proxy)
     if show_images == False:
         prefs = {"profile.managed_default_content_settings.images": 2}
         options.add_experimental_option("prefs", prefs)
@@ -330,9 +330,7 @@ def keep_scroling(driver, data, writer, tweet_ids, scrolling, tweet_parsed, limi
     while scrolling and tweet_parsed < limit:
         sleep(random.uniform(0.5, 1.5))
         # get the card of tweets
-        print("getting cards")
         page_cards = driver.find_elements(By.XPATH, '//article[@data-testid="tweet"]')  # changed div by article
-        print(len(page_cards))
         for card in page_cards:
             tweet = get_data(card, save_images, save_images_dir)
             if tweet:
@@ -342,7 +340,7 @@ def keep_scroling(driver, data, writer, tweet_ids, scrolling, tweet_parsed, limi
                     tweet_ids.add(tweet_id)
                     data.append(tweet)
                     last_date = str(tweet[2])
-                    print("Tweet made at: " + str(last_date) + " is found.")
+                    #print("Tweet made at: " + str(last_date) + " is found.")
                     if writer != None:
                         writer.writerow(tweet)
                     tweet_parsed += 1
