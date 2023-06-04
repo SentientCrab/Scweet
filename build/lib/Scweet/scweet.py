@@ -13,7 +13,7 @@ from .utils import init_driver, get_last_date_from_csv, log_search_page, keep_sc
 def scrape(since, until=None, words=None, to_account=None, from_account=None, mention_account=None, interval=5, lang=None,
           headless=True, limit=float("inf"), display_type="Top", resume=False, proxy=None, hashtag=None, 
           show_images=False, save_images=False, save_dir="outputs", filter_replies=False, proximity=False, 
-          geocode=None, minreplies=None, minlikes=None, minretweets=None):
+          geocode=None, minreplies=None, minlikes=None, minretweets=None, driver=None, saveToCsv=False, env=None):
     """
     scrape data from twitter using requests, starting from <since> until <until>. The program make a search between each <since> and <until_local>
     until it reaches the <until> date if it's given, else it stops at the actual date.
@@ -26,7 +26,7 @@ def scrape(since, until=None, words=None, to_account=None, from_account=None, me
     # ------------------------- Variables : 
     # header of csv
     header = ['UserScreenName', 'UserName', 'Timestamp', 'Text', 'Embedded_text', 'Emojis', 'Comments', 'Likes', 'Retweets',
-                  'Image link', 'Tweet URL']
+                  'Image link', 'Tweet URL', "Id", "Has_video"]
     # list that contains all data 
     data = []
     # unique tweet ids
@@ -38,7 +38,7 @@ def scrape(since, until=None, words=None, to_account=None, from_account=None, me
     until_local = datetime.datetime.strptime(since, '%Y-%m-%d') + datetime.timedelta(days=interval)
     # if <until>=None, set it to the actual date
     if until is None:
-        until = datetime.date.today().strftime("%Y-%m-%d")
+        until = (datetime.datetime.now(datetime.timezone.utc)  + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
     # set refresh at 0. we refresh the page for each <interval> of time.
     refresh = 0
 
@@ -68,7 +68,7 @@ def scrape(since, until=None, words=None, to_account=None, from_account=None, me
     if save_images == True:
         show_images = True
     # initiate the driver
-    driver = init_driver(headless, proxy, show_images)
+    #driver = init_driver(headless, proxy, show_images)
     # resume scraping from previous work
     if resume:
         since = str(get_last_date_from_csv(path))[:10]
@@ -77,10 +77,12 @@ def scrape(since, until=None, words=None, to_account=None, from_account=None, me
     #------------------------- start scraping : keep searching until until
     # open the file
     with open(path, write_mode, newline='', encoding='utf-8') as f:
-        writer = csv.writer(f)
-        if write_mode == 'w':
-            # write the csv header
-            writer.writerow(header)
+        writer = None
+        if saveToCsv:
+            writer = csv.writer(f)
+            if write_mode == 'w':
+                # write the csv header
+                writer.writerow(header)
         # log search page for a specific <interval> of time and keep scrolling unltil scrolling stops or reach the <until>
         while until_local <= datetime.datetime.strptime(until, '%Y-%m-%d'):
             # number of scrolls
@@ -112,9 +114,12 @@ def scrape(since, until=None, words=None, to_account=None, from_account=None, me
             # sleep 
             sleep(random.uniform(0.5, 1.5))
             # start scrolling and get tweets
-            driver, data, writer, tweet_ids, scrolling, tweet_parsed, scroll, last_position = \
-                keep_scroling(driver, data, writer, tweet_ids, scrolling, tweet_parsed, limit, scroll, last_position)
-
+            print("got to try")
+            try:
+                driver, data, writer, tweet_ids, scrolling, tweet_parsed, scroll, last_position = \
+                    keep_scroling(driver, data, writer, tweet_ids, scrolling, tweet_parsed, limit, scroll, last_position, env = env)
+            except:
+                print("needs to login")
             # keep updating <start date> and <end date> for every search
             if type(since) == str:
                 since = datetime.datetime.strptime(since, '%Y-%m-%d') + datetime.timedelta(days=interval)
@@ -126,7 +131,7 @@ def scrape(since, until=None, words=None, to_account=None, from_account=None, me
                 until_local = until_local + datetime.timedelta(days=interval)
 
     data = pd.DataFrame(data, columns = ['UserScreenName', 'UserName', 'Timestamp', 'Text', 'Embedded_text', 'Emojis', 
-                              'Comments', 'Likes', 'Retweets','Image link', 'Tweet URL'])
+                              'Comments', 'Likes', 'Retweets','Image link', 'Tweet URL', "Id", "Has_video"])
 
     # save images
     if save_images==True:
